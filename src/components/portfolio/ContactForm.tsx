@@ -4,7 +4,21 @@ import { toast } from "sonner";
 import { Send, Loader2, Mail } from "lucide-react";
 import { z } from "zod";
 
-// Replace with your deployed Google Apps Script Web App URL
+/**
+ * Google Apps Script Web App URL.
+ *
+ * Set this in your `.env` file at the project root:
+ *
+ *   VITE_CONTACT_FORM_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec
+ *
+ * The Apps Script should accept a POST request with a JSON body containing:
+ *   { name, email, subject, message, timestamp }
+ * and append the values as a new row in your Google Sheet.
+ *
+ * Note: Apps Script Web Apps don't return CORS headers, so the request is
+ * sent with `mode: "no-cors"`. The response is opaque, but the data still
+ * reaches the script and is written to the sheet.
+ */
 const GOOGLE_SHEETS_URL =
   (import.meta.env.VITE_CONTACT_FORM_URL as string | undefined) ?? "";
 
@@ -13,7 +27,7 @@ const schema = z.object({
   email: z.string().trim().email("Enter a valid email").max(255),
   subject: z.string().trim().min(2, "Subject is too short").max(150),
   message: z.string().trim().min(10, "Message is too short").max(2000),
-  website: z.string().max(0).optional(), // honeypot
+  website: z.string().max(0).optional(), // honeypot — must remain empty
 });
 
 export function ContactForm() {
@@ -22,7 +36,8 @@ export function ContactForm() {
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const data = {
       name: String(fd.get("name") ?? ""),
       email: String(fd.get("email") ?? ""),
@@ -30,6 +45,9 @@ export function ContactForm() {
       message: String(fd.get("message") ?? ""),
       website: String(fd.get("website") ?? ""),
     };
+
+    // Honeypot — silently drop bot submissions
+    if (data.website) return;
 
     const parsed = schema.safeParse(data);
     if (!parsed.success) {
@@ -41,41 +59,48 @@ export function ContactForm() {
       toast.error("Please fix the highlighted fields.");
       return;
     }
-    if (parsed.data.website) return; // honeypot triggered
     setErrors({});
 
     if (!GOOGLE_SHEETS_URL) {
+      // Developer-facing warning
+      console.warn(
+        "[ContactForm] VITE_CONTACT_FORM_URL is not defined. " +
+          "Add it to your .env file: VITE_CONTACT_FORM_URL=https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec",
+      );
       toast.error(
-        "Contact endpoint not configured. Set VITE_CONTACT_FORM_URL to your Apps Script URL.",
+        "The contact form isn't configured yet. Please email me directly.",
       );
       return;
     }
 
     setLoading(true);
     try {
-      const body = new URLSearchParams({
-        timestamp: new Date().toISOString(),
+      const payload = {
         name: parsed.data.name,
         email: parsed.data.email,
         subject: parsed.data.subject,
         message: parsed.data.message,
-      });
+        timestamp: new Date().toISOString(),
+      };
+
       await fetch(GOOGLE_SHEETS_URL, {
         method: "POST",
         mode: "no-cors",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
       });
-      toast.success("Message sent. I'll get back to you soon!");
-      (e.target as HTMLFormElement).reset();
-    } catch {
+
+      toast.success("Thank you! Your message has been sent successfully.");
+      form.reset();
+    } catch (err) {
+      console.error("[ContactForm] Submission failed:", err);
       toast.error("Something went wrong. Please email me directly.");
     } finally {
       setLoading(false);
     }
   };
 
-  const field = (name: string, error?: string) =>
+  const field = (_name: string, error?: string) =>
     `w-full rounded-lg border bg-surface px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/70 outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 ${
       error ? "border-destructive" : "border-border"
     }`;
@@ -89,6 +114,7 @@ export function ContactForm() {
       transition={{ duration: 0.5 }}
       className="rounded-2xl border border-border bg-surface p-6 shadow-soft sm:p-8"
     >
+      {/* Honeypot field — hidden from users, only bots fill it */}
       <input
         type="text"
         name="website"
