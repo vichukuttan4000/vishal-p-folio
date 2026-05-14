@@ -9,6 +9,12 @@
 
 import handler from "../../dist/server/server.js";
 
+// NOTE: do NOT export `config.path` here. In Netlify Functions v2, a path
+// config claims those routes outright and bypasses the static publish dir,
+// which would make /assets/*.css and /assets/*.js return SSR HTML instead
+// of the real built files. Routing is handled by the [[redirects]] block
+// in netlify.toml (force = false), so static assets in dist/client win and
+// everything else falls through to this function.
 export default async (request, context) => {
   try {
     return await handler.fetch(request, {}, context);
@@ -16,8 +22,4 @@ export default async (request, context) => {
     console.error("[netlify/ssr] handler failed:", error);
     return new Response("Internal Server Error", { status: 500 });
   }
-};
-
-export const config = {
-  path: "/*",
 };
