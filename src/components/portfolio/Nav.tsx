@@ -73,9 +73,11 @@ export function Nav() {
           onClick={() => go("home")}
           className="group flex items-center gap-2 text-sm font-semibold tracking-tight"
         >
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground shadow-soft">
-            VP
-          </span>
+          <img
+            src="/profile.jpg"
+            alt="Vishal P"
+            className="h-8 w-8 rounded-full object-cover border-2 border-primary shadow-soft"
+          />
           <span className="hidden sm:inline">Vishal P</span>
         </button>
 
