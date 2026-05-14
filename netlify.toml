@@ -1,0 +1,36 @@
+###############################################################################
+# Netlify configuration — TanStack Start (SSR)
+#
+# This project uses TanStack Start. The default Lovable Vite wrapper builds
+# for the Cloudflare Workers runtime, so for Netlify we disable the
+# Cloudflare adapter at build time and serve the SSR entry from a Netlify
+# Edge Function (which uses the same standard `fetch(request)` Web API).
+#
+# Required setup in Netlify dashboard:
+#   1. Connect this GitHub repo to a new Netlify site.
+#   2. Add the environment variable:
+#        VITE_CONTACT_FORM_URL = https://script.google.com/macros/s/.../exec
+#   3. Trigger a deploy. Netlify will use the build/publish settings below.
+###############################################################################
+
+[build]
+  command = "npm run build"
+  publish = "dist/client"
+  edge_functions = "netlify/edge-functions"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Tells vite.config.ts to skip the Cloudflare Workers adapter for this build.
+  BUILD_TARGET = "netlify"
+
+# Static assets emitted by Vite are served directly from /dist/client.
+# Anything else falls through to the SSR edge function below.
+[[edge_functions]]
+  function = "ssr"
+  path = "/*"
+
+# Long-cache hashed Vite assets.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
