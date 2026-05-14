@@ -19,7 +19,7 @@ import { ContactForm } from "@/components/portfolio/ContactForm";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Vishal P — Portfolio" },
+      { title: "Vishal P | Portfolio" },
       {
         name: "description",
         content:
