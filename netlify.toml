@@ -1,10 +1,11 @@
 ###############################################################################
-# Netlify configuration — TanStack Start (SSR)
+# Netlify configuration — TanStack Start (SSR) on Netlify Functions (Node)
 #
 # This project uses TanStack Start. The default Lovable Vite wrapper builds
 # for the Cloudflare Workers runtime, so for Netlify we disable the
-# Cloudflare adapter at build time and serve the SSR entry from a Netlify
-# Edge Function (which uses the same standard `fetch(request)` Web API).
+# Cloudflare adapter at build time and serve the SSR entry from a standard
+# Netlify Function running on the Node runtime (full React 19 / jsx-runtime
+# compatibility — Edge Functions / Deno don't support those subpath exports).
 #
 # Required setup in Netlify dashboard:
 #   1. Connect this GitHub repo to a new Netlify site.
@@ -16,18 +17,26 @@
 [build]
   command = "npm run build"
   publish = "dist/client"
-  edge_functions = "netlify/edge-functions"
+  functions = "netlify/functions"
 
 [build.environment]
   NODE_VERSION = "20"
   # Tells vite.config.ts to skip the Cloudflare Workers adapter for this build.
   BUILD_TARGET = "netlify"
 
+[functions]
+  # Bundle the SSR function with esbuild and include the built server bundle
+  # so the relative `../../dist/server/server.js` import resolves at runtime.
+  node_bundler = "esbuild"
+  included_files = ["dist/server/**"]
+
 # Static assets emitted by Vite are served directly from /dist/client.
-# Anything else falls through to the SSR edge function below.
-[[edge_functions]]
-  function = "ssr"
-  path = "/*"
+# Anything else falls through to the SSR Node function below.
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/ssr"
+  status = 200
+  force = false
 
 # Long-cache hashed Vite assets.
 [[headers]]
