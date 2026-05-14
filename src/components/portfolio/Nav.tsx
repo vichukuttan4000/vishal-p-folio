@@ -74,9 +74,9 @@ export function Nav() {
           className="group flex items-center gap-2 text-sm font-semibold tracking-tight"
         >
           <img
-            src="/profile.jpg"
-            alt="Vishal P"
-            className="h-8 w-8 rounded-full object-cover border-2 border-primary shadow-soft"
+            src="/favicon-v2.svg"
+            alt="Vishal P Logo"
+            className="h-8 w-8 rounded-lg object-contain shadow-soft"
           />
           <span className="hidden sm:inline">Vishal P</span>
         </button>
